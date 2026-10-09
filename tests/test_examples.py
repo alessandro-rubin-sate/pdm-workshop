@@ -23,6 +23,7 @@ RUNNABLE = sorted(
         PROJECT_ROOT / "traps" / "13_import_runs_once" / "demo.py",
         PROJECT_ROOT / "traps" / "15_relative_paths" / "demo.py",
         *(PROJECT_ROOT / "analysis").glob("[0-9]*.py"),
+        PROJECT_ROOT / "exercises" / "workbook.py",
     ]
 )
 

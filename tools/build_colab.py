@@ -44,9 +44,14 @@ def code(text: str, *tags: str) -> Cell:
 
 @dataclass
 class Source:
-    """A .py file of the project, split at its # %% markers."""
+    """A .py file of the project, split at its # %% markers.
+
+    ``mode`` applies to a workbook with solutions marked in it (see
+    ``apply_mode``): "exercise" hides them, "solution" keeps them.
+    """
 
     path: str
+    mode: str | None = None
 
 
 @dataclass
@@ -119,7 +124,62 @@ def _split_docstring(text: str) -> tuple[str | None, str]:
     return match.group(1), text[match.end() :]
 
 
-def read_source(path: str) -> list[Cell]:
+_TEMPLATE_LINE = re.compile(r"^(?P<indent>\s*)# EXERCISE: ?(?P<text>.*)$")
+_INLINE = re.compile(r"^(?P<indent>\s*)(?P<code>\S.*?)\s+# EXERCISE: (?P<placeholder>.*)$")
+_TRAILING_COMMENT = re.compile(r"^(?P<code>.*?)(?P<comment>\s+# .*)$")
+
+
+def apply_mode(text: str, mode: str | None) -> str:
+    """Turn a cell of the workbook into its exercise or its solution version.
+
+    Three markers, all comments, so the workbook itself runs as the solution:
+
+    - ``code  # EXERCISE: placeholder``: the exercise shows the placeholder instead of the
+      code; a trailing ``# comment`` of the code is kept in both versions;
+    - lines between ``# BEGIN SOLUTION`` and ``# END SOLUTION``: the exercise shows
+      the block's ``# EXERCISE: ...`` lines instead, or "your code here" if none;
+    - ``# EXERCISE: ...`` lines appear only in the exercise.
+    """
+    if mode is None:
+        return text
+    out: list[str] = []
+    template: list[str] = []
+    in_block, indent = False, ""
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped == "# BEGIN SOLUTION":
+            in_block, template = True, []
+            indent = line[: len(line) - len(line.lstrip())]
+            continue
+        if stripped == "# END SOLUTION":
+            in_block = False
+            if mode == "exercise":
+                out += template or [f"{indent}# your code here", f"{indent}..."]
+            continue
+        template_line = _TEMPLATE_LINE.match(line)
+        if in_block:
+            if template_line:
+                template.append(template_line["indent"] + template_line["text"])
+            elif mode == "solution":
+                out.append(line)
+            continue
+        inline = _INLINE.match(line)
+        if inline:
+            code_part = inline["code"]
+            if mode == "solution":
+                out.append(inline["indent"] + code_part)
+            else:
+                comment = _TRAILING_COMMENT.match(code_part)
+                hint = comment["comment"] if comment else ""
+                out.append(inline["indent"] + inline["placeholder"] + hint)
+            continue
+        out.append(line)
+    if in_block:
+        raise ValueError("# BEGIN SOLUTION without # END SOLUTION")
+    return "\n".join(out)
+
+
+def read_source(path: str, mode: str | None = None) -> list[Cell]:
     text = (PROJECT_ROOT / path).read_text(encoding="utf-8")
     docstring, rest = _split_docstring(text)
     cells = [md(_docstring_to_markdown(docstring, path))] if docstring else []
@@ -132,7 +192,10 @@ def read_source(path: str) -> list[Cell]:
             stripped = [re.sub(r"^# ?", "", line) for line in body.splitlines()]
             if any(stripped):
                 cells.append(md("\n".join(stripped)))
+        elif title == "check":
+            cells.append(code(f"# Check\n{apply_mode(body, mode)}", "check"))
         elif body or title:
+            body = apply_mode(body, mode)
             cells.append(code(f"# {title}\n{body}" if title else body))
 
     for line in rest.splitlines():
@@ -161,7 +224,7 @@ Then run it, and name the habit that prevents the mistake.
 PART_1 = [
     Notebook(
         "colab/part1/1_introduction.ipynb",
-        "1 · Introduction",
+        "1 - Introduction",
         """
 How these notebooks work:
 
@@ -199,7 +262,7 @@ language. A few commands are enough.
     ),
     Notebook(
         "colab/part1/2_data_structures.ipynb",
-        "2 · Data structures",
+        "2 - Data structures",
         "The everyday containers and the idioms built on them, then the first traps.",
         [
             md("## Idioms"),
@@ -219,7 +282,7 @@ language. A few commands are enough.
     ),
     Notebook(
         "colab/part1/3_arrays_and_numbers.ipynb",
-        "3 · Arrays and numbers",
+        "3 - Arrays and numbers",
         "NumPy arrays: views, products, broadcasting, arithmetic, memory order, logic.",
         [
             TRAP_RULE,
@@ -233,7 +296,7 @@ language. A few commands are enough.
     ),
     Notebook(
         "colab/part1/4_functions_and_idioms.ipynb",
-        "4 · Functions and idioms",
+        "4 - Functions and idioms",
         "The constructs that make Python code look unfamiliar to a MATLAB reader.",
         [
             Source("idioms/06_args_kwargs.py"),
@@ -246,7 +309,7 @@ language. A few commands are enough.
     ),
     Notebook(
         "colab/part1/5_packages_and_dependencies.ipynb",
-        "5 · Packages and dependencies",
+        "5 - Packages and dependencies",
         "What `import` does, where it looks, and what an environment is.",
         [
             md(
@@ -332,7 +395,7 @@ Python of the notebook; `!pip` targets whichever pip the shell finds first.
     ),
     Notebook(
         "colab/part1/6_organizing_code.ipynb",
-        "6 · Organizing code",
+        "6 - Organizing code",
         "State that lingers, the forms code takes, and paths that depend on where you run.",
         [
             md(
@@ -431,7 +494,7 @@ The same script, launched from two folders.
     ),
     Notebook(
         "colab/part1/7_errors_and_debugging.ipynb",
-        "7 · Errors and debugging",
+        "7 - Errors and debugging",
         "Catching errors, reading a traceback, and the debugger, on a function ported from MATLAB.",
         [
             md(
@@ -492,7 +555,7 @@ with `n`. Two traps seen earlier are combined here: name them before fixing anyt
     ),
     Notebook(
         "colab/part1/8_checks_before_running.ipynb",
-        "8 · Checks before running",
+        "8 - Checks before running",
         "Three tools that read code without running it, and the check that runs it.",
         [
             code("%pip install -q ruff mypy"),
@@ -525,7 +588,27 @@ PART_2 = [
     for name in ["01_explore", "02_features", "03_model", "04_anomaly"]
 ]
 
-NOTEBOOKS = PART_1 + PART_2
+WORKBOOK = [
+    Notebook(
+        "colab/exercises.ipynb",
+        "Exercises",
+        """
+One hour of exercises. Complete the cells, then run the check below each one.
+The solutions are in `solutions.ipynb`, next to this notebook: try first.
+""",
+        [Source("exercises/workbook.py", mode="exercise")],
+    ),
+    Notebook(
+        "colab/solutions.ipynb",
+        "Solutions",
+        """
+The solutions of `exercises.ipynb`, cell by cell. Every check prints OK.
+""",
+        [Source("exercises/workbook.py", mode="solution")],
+    ),
+]
+
+NOTEBOOKS = WORKBOOK + PART_1 + PART_2
 
 
 # ---------------------------------------------------------------- writing
@@ -534,11 +617,11 @@ NOTEBOOKS = PART_1 + PART_2
 def expand(notebook: Notebook) -> list[Cell]:
     body: list[Cell] = []
     for part in notebook.parts:
-        body += read_source(part.path) if isinstance(part, Source) else [part]
+        body += read_source(part.path, part.mode) if isinstance(part, Source) else [part]
     if notebook.title_from_first_cell:
         title, body = body[0], body[1:]
     else:
-        title = md(f"# Python for MATLAB users · {notebook.title}\n\n{notebook.intro.strip()}")
+        title = md(f"# Python for MATLAB users - {notebook.title}\n\n{notebook.intro.strip()}")
     return [title, *setup_cells(), *body]
 
 
@@ -564,14 +647,19 @@ def render(notebook: Notebook) -> str:
     return nbformat.writes(nb) + "\n"
 
 
-def render_index() -> str:
+def _index_table(notebooks: list[Notebook]) -> str:
     badge = "https://colab.research.google.com/assets/colab-badge.svg"
-    rows = []
-    for notebook in NOTEBOOKS:
-        name = notebook.title or read_source(notebook.parts[0].path)[0].source.splitlines()[0]
-        name = name.lstrip("# ").strip()
+    rows = ["| Notebook | |", "| --- | --- |"]
+    for notebook in notebooks:
+        first = notebook.parts[0]
+        name = notebook.title
+        if not name and isinstance(first, Source):
+            name = read_source(first.path)[0].source.splitlines()[0].lstrip("# ").strip()
         rows.append(f"| {name} | [![Open in Colab]({badge})]({colab_link(notebook.path)}) |")
-    table = "\n".join(rows)
+    return "\n".join(rows)
+
+
+def render_index() -> str:
     return f"""# Notebooks for Colab
 
 Generated by `tools/build_colab.py` from the files of the project: do not edit
@@ -580,9 +668,24 @@ them here. Edit the `.py` file, or the generator, and run it again.
 Each notebook starts with a setup cell that downloads the project from
 {repository_url()} and installs it. The links open the `{BRANCH}` branch.
 
-| Notebook | |
-| --- | --- |
-{table}
+## The hands-on hour
+
+Ten exercises, from lists to a real vibration signal. Participants work in the
+first notebook; the second has the same cells, completed. Both are generated from
+`exercises/workbook.py`.
+
+{_index_table(WORKBOOK)}
+
+## Part 1, section by section
+
+Demonstrations that follow the slides, for the instructor or for whoever wants
+to go further after the workshop.
+
+{_index_table(PART_1)}
+
+## Part 2
+
+{_index_table(PART_2)}
 """
 
 

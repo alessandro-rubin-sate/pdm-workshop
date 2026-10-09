@@ -13,9 +13,35 @@ The same project serves both sessions:
 
 ## The workshop runs on Colab
 
-Participants work in the notebooks of `colab/`, one per section of the slides,
-opened from the links in [`colab/README.md`](colab/README.md). They need a
-Google account and a browser, nothing installed.
+Participants need a Google account and a browser, nothing installed. The links
+to every notebook are in [`colab/README.md`](colab/README.md).
+
+**The hands-on hour** is one notebook, `colab/exercises.ipynb`: ten exercises in
+the order of the course, from lists to a real vibration signal, each with a cell
+to complete and a check cell that prints `OK` or says what is still wrong.
+`colab/solutions.ipynb` has the same cells, completed.
+
+| # | Exercise | Minutes | Course topic |
+| --- | --- | --- | --- |
+| 1 | Indexing and slicing | 4 | Lists, 0-based indices |
+| 2 | A name is not a copy | 4 | `b = a`, `.copy()`, a list is not a vector |
+| 3 | Conditions in a function | 6 | `if`/`elif`/`else`, default and keyword arguments |
+| 4 | A loop that stops early | 5 | `for`, `enumerate`, `return` |
+| 5 | Comprehensions | 6 | List and dictionary comprehensions |
+| 6 | Counting with a dictionary | 5 | `dict`, `.get`, `max(..., key=...)` |
+| 7 | A class for a pump | 8 | Classes, methods, `math.pi` |
+| 8 | NumPy: whole arrays, no loops | 8 | `*` and `@`, RMS, `reshape`, `axis` |
+| 9 | Find the bug: a slice is a view | 5 | Views and in-place operations |
+| 10 | Real data: when would an alarm have fired? | 10 | NumPy on the fleet data, a Matplotlib chart |
+
+Both notebooks are generated from one file, `exercises/workbook.py`, which runs
+as the solution. Markers in comments say what the exercise version hides:
+`code  # EXERCISE: placeholder` replaces one line, and the lines between
+`# BEGIN SOLUTION` and `# END SOLUTION` become "your code here" (or the block's
+own `# EXERCISE:` lines). If time runs short, exercise 6 is the one to skip.
+
+The other notebooks of `colab/` follow the slides section by section: they are
+demonstrations for the instructor, or material for after the workshop.
 
 Every notebook starts with the same setup cell, because on Colab each notebook
 runs on its own machine:
@@ -114,7 +140,7 @@ configuration has never been started on GitHub: try it before relying on it.
 | `notebooks/` | Part 1 | The same report as a notebook, saved with its results |
 | `idioms/` | Part 1 | One short file per everyday construct: unpacking, comprehensions, `*args`, `with`, ... |
 | `traps/` | Part 1 | One short file per trap: predict the output, then run it |
-| `exercises/` | Part 1 | A function ported from MATLAB, with two bugs to find |
+| `exercises/` | Part 1 | `workbook.py`, the source of the hands-on hour; a function ported from MATLAB, with two bugs to find |
 | `checks/` | Part 1 | Three flawed files for the formatter, the linter and the type checker |
 | `analysis/` | Part 2 | Four files to run cell by cell: explore, features, model, anomaly |
 | `src/pdm_workshop/` | both | The package: data generator, features, chart style |
