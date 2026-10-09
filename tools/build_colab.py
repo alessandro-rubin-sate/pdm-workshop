@@ -21,7 +21,7 @@ import nbformat
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_DIR = PROJECT_ROOT / "colab"
 CLONE_FOLDER = "/content/pdm-workshop"
-BRANCH = "main"
+BRANCH = "master"
 
 
 # ---------------------------------------------------------------- building blocks
