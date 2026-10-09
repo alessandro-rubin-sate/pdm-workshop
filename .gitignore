@@ -1,0 +1,14 @@
+# The environment is rebuilt from pyproject.toml and the lockfile, never shared.
+.venv/
+
+# Generated data: recreate it with `uv run scripts/make_dataset.py`.
+data/*
+!data/.gitkeep
+
+# Caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ipynb_checkpoints/

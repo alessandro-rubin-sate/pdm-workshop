@@ -1,0 +1,60 @@
+[project]
+name = "pdm-workshop"
+version = "0.1.0"
+description = "Hands-on material for the workshop 'Python for MATLAB users', built around a predictive-maintenance case."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "matplotlib>=3.9",
+    "numpy>=2.0",
+    "polars>=1.21",
+    "scikit-learn>=1.5",
+    "scipy>=1.13",
+]
+
+[project.urls]
+# Where the course repository lives. The Colab notebooks clone it from here:
+# after changing it, run `uv run tools/build_colab.py`.
+Repository = "https://github.com/alessandro-rubin-sate/pdm-workshop"
+
+[project.scripts]
+# Installing the package creates a `fleet` command that calls this function.
+fleet = "pdm_workshop.cli:main"
+
+[dependency-groups]
+dev = [
+    "ipykernel>=6.29",
+    "mypy>=1.11",
+    "nbformat>=5.11.1",
+    "pytest>=8.0",
+    "ruff>=0.8",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pdm_workshop"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+# checks/ holds deliberately flawed files for the static-analysis demos;
+# colab/ is generated from files that are checked where they are written.
+extend-exclude = ["checks", "colab"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "NPY"]
+
+[tool.ruff.lint.per-file-ignores]
+# The traps and the exercise are wrong on purpose.
+"traps/**" = ["B006", "E402", "F811", "I001"]
+"exercises/**" = ["E402"]
+# Analysis files are split into cells, with imports where they are first needed.
+"analysis/*" = ["E402"]
+
+[tool.mypy]
+files = ["src"]
